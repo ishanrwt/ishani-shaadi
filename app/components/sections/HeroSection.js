@@ -59,7 +59,7 @@ export default function HeroSection() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center px-5 pb-8 pt-10 text-center sm:pt-14" data-invite-text>
+      <div className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-start px-5 pb-8 pt-40 text-center sm:pt-44" data-invite-text>
         <motion.p
           className="font-serif text-base italic leading-relaxed text-brown-soft sm:text-lg"
           initial={{ opacity: 0, y: 16 }}
