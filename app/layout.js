@@ -36,13 +36,44 @@ const greatVibes = Great_Vibes({
   display: "swap",
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3001");
+
 export const metadata = {
+  metadataBase: new URL(siteUrl),
   title: wedding.meta.title,
   description: wedding.meta.description,
   icons: {
     icon: "/icon.webp",
     shortcut: "/icon.webp",
     apple: "/icon.webp",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    siteName: "Ishani & Manween",
+    title: wedding.meta.title,
+    description: wedding.meta.description,
+    images: [
+      {
+        url: wedding.meta.ogImage,
+        width: 1280,
+        height: 720,
+        alt: "You're Invited — Tap to open",
+        type: "image/jpeg",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: wedding.meta.title,
+    description: wedding.meta.description,
+    images: [wedding.meta.ogImage],
   },
 };
 

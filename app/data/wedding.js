@@ -6,9 +6,10 @@ const wedding = {
   },
 
   meta: {
-    title: "Ishani & Manween — Wedding Invitation",
+    title: "You're Invited — Ishani & Manween",
     description:
-      "With joyous hearts we cordially invite you to the wedding of Ishani and Manween. Golden Moments: 1–3 December 2026 in Ambala. Venue: RD FARMS, Ambala Cantt.",
+      "Tap to open the wedding invitation of Ishani and Manween. Golden Moments: 1–3 December 2026 · RD FARMS, Ambala Cantt.",
+    ogImage: "/og-invite.jpg",
   },
 
   hero: {
