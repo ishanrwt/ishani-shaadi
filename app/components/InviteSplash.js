@@ -69,6 +69,9 @@ export default function InviteSplash({ manageOverflow = true }) {
             scale: 1.04,
           }}
           transition={{ duration: 1.15, ease }}
+          onPointerDown={() => {
+            document.dispatchEvent(new Event("invite-unlock-audio"));
+          }}
         >
           <AnimatePresence mode="wait">
             {stage === "text" ? (

@@ -18,12 +18,17 @@ export default function SlideDeck({ slides, active = true }) {
   const total = slides.length;
   const canGo = active && total > 0;
 
+  const unlockAudio = useCallback(() => {
+    document.dispatchEvent(new Event("invite-unlock-audio"));
+  }, []);
+
   const goTo = useCallback(
     (next) => {
       if (!canGo || lockedRef.current) return;
       const clamped = Math.max(0, Math.min(total - 1, next));
       if (clamped === index) return;
 
+      unlockAudio();
       lockedRef.current = true;
       setDirection(clamped > index ? 1 : -1);
       setIndex(clamped);
@@ -34,7 +39,7 @@ export default function SlideDeck({ slides, active = true }) {
         reduceMotion ? 180 : NAV_COOLDOWN_MS,
       );
     },
-    [canGo, index, reduceMotion, total],
+    [canGo, index, reduceMotion, total, unlockAudio],
   );
 
   const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
@@ -130,10 +135,13 @@ export default function SlideDeck({ slides, active = true }) {
   return (
     <div
       className="relative h-full w-full overflow-hidden bg-cream"
+      onPointerDown={unlockAudio}
       onTouchStart={(event) => {
+        unlockAudio();
         touchStartY.current = event.touches[0].clientY;
       }}
       onTouchEnd={(event) => {
+        unlockAudio();
         const delta = event.changedTouches[0].clientY - touchStartY.current;
         if (delta <= -SWIPE_THRESHOLD && atBottom()) goNext();
         else if (delta >= SWIPE_THRESHOLD && atTop()) goPrev();
