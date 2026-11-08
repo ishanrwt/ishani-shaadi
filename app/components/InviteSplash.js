@@ -12,6 +12,7 @@ export default function InviteSplash({
   const [stage, setStage] = useState("text");
   const videoRef = useRef(null);
   const completedRef = useRef(false);
+  const videoReadyRef = useRef(false);
 
   useEffect(() => {
     if (!manageOverflow) return undefined;
@@ -39,31 +40,71 @@ export default function InviteSplash({
     return () => window.clearTimeout(t);
   }, [stage, onComplete]);
 
+  // Warm the video while the invite text is on screen.
   useEffect(() => {
     const video = videoRef.current;
-    if (stage !== "video" || !video) return undefined;
+    if (!video) return undefined;
+
+    const markReady = () => {
+      videoReadyRef.current = true;
+    };
 
     video.muted = true;
     video.defaultMuted = true;
-    video.playbackRate = 2;
     video.preload = "auto";
     video.load();
 
-    const play = () => {
+    if (video.readyState >= 3) markReady();
+    video.addEventListener("canplaythrough", markReady);
+    video.addEventListener("loadeddata", markReady);
+
+    return () => {
+      video.removeEventListener("canplaythrough", markReady);
+      video.removeEventListener("loadeddata", markReady);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (stage !== "loading" && stage !== "video") return undefined;
+    const video = videoRef.current;
+    if (!video) return undefined;
+
+    const startPlayback = () => {
       video.playbackRate = 2;
       video.muted = true;
-      return video.play().catch(() => setStage("done"));
+      setStage("video");
+      video.play().catch(() => setStage("done"));
     };
 
-    play();
-    return undefined;
+    if (video.readyState >= 3 || videoReadyRef.current) {
+      startPlayback();
+      return undefined;
+    }
+
+    const onReady = () => {
+      videoReadyRef.current = true;
+      startPlayback();
+    };
+
+    video.addEventListener("canplaythrough", onReady);
+    video.addEventListener("loadeddata", onReady);
+    video.load();
+
+    const fallback = window.setTimeout(() => {
+      startPlayback();
+    }, 8000);
+
+    return () => {
+      video.removeEventListener("canplaythrough", onReady);
+      video.removeEventListener("loadeddata", onReady);
+      window.clearTimeout(fallback);
+    };
   }, [stage]);
 
   const openInvite = () => {
     if (stage !== "text") return;
-    // Same tap unlocks audio (browser gesture) and opens the envelope.
     document.dispatchEvent(new Event("invite-unlock-audio"));
-    setStage("video");
+    setStage(videoReadyRef.current ? "video" : "loading");
   };
 
   const visible = stage !== "done";
@@ -81,13 +122,30 @@ export default function InviteSplash({
           }}
           transition={{ duration: 1.15, ease }}
         >
+          {/* Preload / play envelope off-screen until ready to show */}
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            preload="auto"
+            onLoadedMetadata={(event) => {
+              event.currentTarget.playbackRate = 2;
+            }}
+            onEnded={() => setStage("done")}
+            className={`absolute -top-[10%] left-0 h-[136%] w-full object-cover transition-opacity duration-500 ${
+              stage === "video" ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+          >
+            <source src="/envelope.mp4" type="video/mp4" />
+          </video>
+
           <AnimatePresence mode="wait">
             {stage === "text" ? (
               <motion.button
                 key="text"
                 type="button"
                 onClick={openInvite}
-                className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-4 border-0 bg-transparent px-8 text-center"
+                className="relative z-10 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-5 border-0 bg-transparent px-8 text-center"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.45, ease }}
@@ -101,7 +159,7 @@ export default function InviteSplash({
                   You&apos;re Invited
                 </motion.p>
                 <motion.p
-                  className="font-display text-[0.62rem] uppercase tracking-[0.28em] text-gold"
+                  className="font-display text-[0.95rem] font-bold uppercase tracking-[0.32em] text-gold sm:text-[1.05rem]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.8, delay: 0.7, ease }}
@@ -109,30 +167,33 @@ export default function InviteSplash({
                   Tap to open
                 </motion.p>
               </motion.button>
-            ) : (
+            ) : null}
+
+            {stage === "loading" ? (
               <motion.div
-                key="video"
-                className="absolute inset-0 overflow-hidden bg-cream"
+                key="loading"
+                className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-6 bg-cream px-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.45, ease }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, ease }}
               >
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  preload="metadata"
-                  onLoadedMetadata={(event) => {
-                    event.currentTarget.playbackRate = 2;
-                  }}
-                  onEnded={() => setStage("done")}
-                  className="absolute -top-[10%] left-0 h-[136%] w-full object-cover"
-                >
-                  <source src="/envelope.mp4" type="video/mp4" />
-                </video>
+                <motion.div
+                  className="h-10 w-10 rounded-full border-[1.5px] border-gold/25 border-t-gold"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
+                  aria-hidden="true"
+                />
+                <div className="text-center">
+                  <p className="font-serif text-2xl italic text-brown sm:text-[1.75rem]">
+                    Opening your invite
+                  </p>
+                  <p className="mt-3 font-display text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-gold">
+                    Please wait
+                  </p>
+                </div>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
         </motion.div>
       ) : null}
