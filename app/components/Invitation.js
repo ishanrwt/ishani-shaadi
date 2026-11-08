@@ -1,6 +1,7 @@
 "use client";
 
 import { FloatingPetals } from "./Atmosphere";
+import BackgroundMusic from "./BackgroundMusic";
 import InviteSplash from "./InviteSplash";
 import SlideDeck from "./SlideDeck";
 import ClosingSection from "./sections/ClosingSection";
@@ -26,6 +27,7 @@ export default function Invitation() {
     <main className="flex min-h-dvh items-center justify-center bg-[#2a1810]">
       {/* Always render as a mobile-width invitation card */}
       <div className="relative h-dvh w-full max-w-[430px] overflow-hidden bg-cream shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+        <BackgroundMusic />
         <InviteSplash manageOverflow={false} />
         <FloatingPetals />
         <SlideDeck slides={slides} />

@@ -113,6 +113,8 @@ const wedding = {
     panel: "/invitation/panel.webp",
     coupleArt: "/invitation/footer.webp",
     floralBorder: "/invitation/photos/floral-border.png",
+    music: "/music/ishq-hai.mp3",
+    musicStartAt: 36,
   },
 };
 
