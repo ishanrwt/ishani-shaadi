@@ -9,7 +9,7 @@ import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   variable: "--font-cormorant",
   display: "swap",
@@ -17,14 +17,14 @@ const cormorant = Cormorant_Garamond({
 
 const cinzel = Cinzel({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500"],
   variable: "--font-cinzel",
   display: "swap",
 });
 
 const noto = Noto_Serif_Devanagari({
   subsets: ["devanagari"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500"],
   variable: "--font-noto",
   display: "swap",
 });
@@ -40,9 +40,9 @@ export const metadata = {
   title: wedding.meta.title,
   description: wedding.meta.description,
   icons: {
-    icon: "/background-art.webp",
-    shortcut: "/background-art.webp",
-    apple: "/background-art.webp",
+    icon: "/icon.webp",
+    shortcut: "/icon.webp",
+    apple: "/icon.webp",
   },
 };
 

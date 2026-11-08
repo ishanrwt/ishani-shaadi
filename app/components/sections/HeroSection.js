@@ -26,7 +26,7 @@ export default function HeroSection() {
               width={1080}
               height={860}
               priority
-              sizes="(max-width: 540px) 100vw, 540px"
+              sizes="430px"
               className="block h-auto w-full select-none"
             />
             <HeaderOverlays />
@@ -124,9 +124,8 @@ export default function HeroSection() {
           alt=""
           width={1600}
           height={400}
-          sizes="100vw"
+          sizes="430px"
           className="floral-wave block h-auto w-full select-none"
-          priority
         />
       </div>
     </section>

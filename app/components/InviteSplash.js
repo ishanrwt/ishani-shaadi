@@ -5,25 +5,18 @@ import { AnimatePresence, motion } from "framer-motion";
 
 const ease = [0.22, 1, 0.36, 1];
 
-export default function InviteSplash({ manageOverflow = true }) {
+export default function InviteSplash({
+  manageOverflow = true,
+  onComplete,
+}) {
   const [stage, setStage] = useState("text");
   const videoRef = useRef(null);
+  const completedRef = useRef(false);
 
   useEffect(() => {
-    if (!manageOverflow) {
-      if (stage === "text") {
-        const hide = window.setTimeout(() => setStage("video"), 2300);
-        return () => window.clearTimeout(hide);
-      }
-      return undefined;
-    }
+    if (!manageOverflow) return undefined;
 
     document.body.style.overflow = "hidden";
-
-    if (stage === "text") {
-      const hide = window.setTimeout(() => setStage("video"), 2300);
-      return () => window.clearTimeout(hide);
-    }
 
     if (stage === "done") {
       const unlock = window.setTimeout(() => {
@@ -38,12 +31,23 @@ export default function InviteSplash({ manageOverflow = true }) {
   }, [stage, manageOverflow]);
 
   useEffect(() => {
+    if (stage !== "done" || completedRef.current) return undefined;
+    completedRef.current = true;
+    const t = window.setTimeout(() => {
+      onComplete?.();
+    }, 200);
+    return () => window.clearTimeout(t);
+  }, [stage, onComplete]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (stage !== "video" || !video) return undefined;
 
     video.muted = true;
     video.defaultMuted = true;
     video.playbackRate = 2;
+    video.preload = "auto";
+    video.load();
 
     const play = () => {
       video.playbackRate = 2;
@@ -54,6 +58,13 @@ export default function InviteSplash({ manageOverflow = true }) {
     play();
     return undefined;
   }, [stage]);
+
+  const openInvite = () => {
+    if (stage !== "text") return;
+    // Same tap unlocks audio (browser gesture) and opens the envelope.
+    document.dispatchEvent(new Event("invite-unlock-audio"));
+    setStage("video");
+  };
 
   const visible = stage !== "done";
 
@@ -69,15 +80,14 @@ export default function InviteSplash({ manageOverflow = true }) {
             scale: 1.04,
           }}
           transition={{ duration: 1.15, ease }}
-          onPointerDown={() => {
-            document.dispatchEvent(new Event("invite-unlock-audio"));
-          }}
         >
           <AnimatePresence mode="wait">
             {stage === "text" ? (
-              <motion.div
+              <motion.button
                 key="text"
-                className="flex h-full w-full items-center justify-center px-8 text-center"
+                type="button"
+                onClick={openInvite}
+                className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-4 border-0 bg-transparent px-8 text-center"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.45, ease }}
@@ -90,7 +100,15 @@ export default function InviteSplash({ manageOverflow = true }) {
                 >
                   You&apos;re Invited
                 </motion.p>
-              </motion.div>
+                <motion.p
+                  className="font-display text-[0.62rem] uppercase tracking-[0.28em] text-gold"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.8, delay: 0.7, ease }}
+                >
+                  Tap to open
+                </motion.p>
+              </motion.button>
             ) : (
               <motion.div
                 key="video"
@@ -104,7 +122,7 @@ export default function InviteSplash({ manageOverflow = true }) {
                   autoPlay
                   muted
                   playsInline
-                  preload="auto"
+                  preload="metadata"
                   onLoadedMetadata={(event) => {
                     event.currentTarget.playbackRate = 2;
                   }}

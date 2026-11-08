@@ -25,7 +25,6 @@ export default function InkDropImage({
           fill
           sizes={sizes}
           className="object-cover object-center"
-          priority
         />
       </div>
       {!reduceMotion ? (

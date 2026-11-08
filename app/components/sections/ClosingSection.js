@@ -85,9 +85,8 @@ export default function ClosingSection() {
             alt=""
             width={1080}
             height={960}
-            sizes="112vw"
+            sizes="430px"
             className="block h-auto w-full select-none"
-            priority
           />
           <FooterOverlays />
           <DiyaGlow />

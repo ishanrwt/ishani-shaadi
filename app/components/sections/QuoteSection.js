@@ -30,7 +30,7 @@ export default function QuoteSection() {
               <InkDropImage
                 src={wedding.images.story}
                 alt={`${wedding.couple.bride} and ${wedding.couple.groom} as children`}
-                sizes="320px"
+                sizes="430px"
               />
               <p className="mt-3 font-script text-2xl text-maroon sm:text-3xl">
                 {wedding.couple.bride} &amp; {wedding.couple.groom}

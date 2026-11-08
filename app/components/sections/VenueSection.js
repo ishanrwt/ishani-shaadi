@@ -29,7 +29,7 @@ export default function VenueSection() {
             <InkDropImage
               src={wedding.images.venue}
               alt={`${venue.name} wedding venue`}
-              sizes="360px"
+              sizes="430px"
               aspectClass="aspect-[16/10]"
             />
           </div>

@@ -3,12 +3,11 @@
 import { useEffect, useRef } from "react";
 import wedding from "../data/wedding";
 
-const START_AT = wedding.images.musicStartAt ?? 36;
-const SRC = wedding.images.music ?? "/music/ishq-hai.mp3";
+const START_AT = wedding.images.musicStartAt ?? 0;
+const SRC = wedding.images.music ?? "/music/ishq-hai-loop.mp3";
 
 export default function BackgroundMusic() {
   const audioRef = useRef(null);
-  const startedRef = useRef(false);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -20,13 +19,11 @@ export default function BackgroundMusic() {
 
     const seekStart = () => {
       try {
-        if (Number.isFinite(audio.duration) && audio.duration > START_AT) {
-          if (audio.currentTime < START_AT) {
-            audio.currentTime = START_AT;
-          }
+        if (START_AT > 0 && Number.isFinite(audio.duration) && audio.duration > START_AT) {
+          if (audio.currentTime < START_AT) audio.currentTime = START_AT;
         }
       } catch {
-        // Some browsers throw if seek happens too early.
+        // ignore
       }
     };
 
@@ -36,24 +33,10 @@ export default function BackgroundMusic() {
         audio.muted = false;
         audio.volume = 0.7;
         await audio.play();
-        startedRef.current = true;
         seekStart();
         return true;
       } catch {
-        startedRef.current = false;
         return false;
-      }
-    };
-
-    const onLoaded = () => {
-      seekStart();
-      tryPlay();
-    };
-
-    const onTimeUpdate = () => {
-      // If the browser rewinds before our start point, jump forward again.
-      if (audio.currentTime > 0 && audio.currentTime < START_AT - 0.25) {
-        audio.currentTime = START_AT;
       }
     };
 
@@ -62,37 +45,27 @@ export default function BackgroundMusic() {
       tryPlay();
     };
 
+    const onTimeUpdate = () => {
+      if (START_AT > 0 && audio.currentTime > 0 && audio.currentTime < START_AT - 0.25) {
+        audio.currentTime = START_AT;
+      }
+    };
+
+    // Called from the envelope tap — same user gesture, so browsers allow sound.
     const unlock = () => {
       tryPlay();
     };
 
-    audio.addEventListener("loadedmetadata", onLoaded);
-    audio.addEventListener("canplay", onLoaded);
-    audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("ended", onEnded);
-
-    // Keep listening until playback actually starts (deployed browsers block autoplay).
-    const gestureOptions = { capture: true };
-    window.addEventListener("pointerdown", unlock, gestureOptions);
-    window.addEventListener("touchstart", unlock, gestureOptions);
-    window.addEventListener("touchend", unlock, gestureOptions);
-    window.addEventListener("click", unlock, gestureOptions);
-    window.addEventListener("keydown", unlock, gestureOptions);
+    audio.addEventListener("timeupdate", onTimeUpdate);
     document.addEventListener("invite-unlock-audio", unlock);
 
+    // Warm the buffer without forcing audible autoplay.
     audio.load();
-    tryPlay();
 
     return () => {
-      audio.removeEventListener("loadedmetadata", onLoaded);
-      audio.removeEventListener("canplay", onLoaded);
-      audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
-      window.removeEventListener("pointerdown", unlock, gestureOptions);
-      window.removeEventListener("touchstart", unlock, gestureOptions);
-      window.removeEventListener("touchend", unlock, gestureOptions);
-      window.removeEventListener("click", unlock, gestureOptions);
-      window.removeEventListener("keydown", unlock, gestureOptions);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
       document.removeEventListener("invite-unlock-audio", unlock);
     };
   }, []);
@@ -103,7 +76,6 @@ export default function BackgroundMusic() {
       src={SRC}
       preload="auto"
       playsInline
-      // Helps some mobile browsers treat this as inline media.
       // eslint-disable-next-line react/no-unknown-property
       webkit-playsinline="true"
     />

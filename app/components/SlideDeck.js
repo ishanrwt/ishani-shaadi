@@ -4,8 +4,8 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const ease = [0.22, 1, 0.36, 1];
-const SWIPE_THRESHOLD = 56;
-const NAV_COOLDOWN_MS = 850;
+const SWIPE_THRESHOLD = 40;
+const NAV_COOLDOWN_MS = 700;
 
 export default function SlideDeck({ slides, active = true }) {
   const [index, setIndex] = useState(0);
@@ -13,7 +13,6 @@ export default function SlideDeck({ slides, active = true }) {
   const reduceMotion = useReducedMotion();
   const lockedRef = useRef(false);
   const touchStartY = useRef(0);
-  const panelRef = useRef(null);
 
   const total = slides.length;
   const canGo = active && total > 0;
@@ -45,18 +44,6 @@ export default function SlideDeck({ slides, active = true }) {
   const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
   const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
 
-  const atTop = () => {
-    const el = panelRef.current;
-    if (!el) return true;
-    return el.scrollTop <= 2;
-  };
-
-  const atBottom = () => {
-    const el = panelRef.current;
-    if (!el) return true;
-    return el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
-  };
-
   useEffect(() => {
     if (!active) return undefined;
     document.body.style.overflow = "hidden";
@@ -87,18 +74,11 @@ export default function SlideDeck({ slides, active = true }) {
     if (!canGo) return undefined;
 
     const onWheel = (event) => {
-      if (Math.abs(event.deltaY) < 14) return;
-
-      if (event.deltaY > 0) {
-        if (!atBottom()) return;
-        event.preventDefault();
-        goNext();
-        return;
-      }
-
-      if (!atTop()) return;
+      // One wheel/trackpad gesture = one page (cooldown blocks repeats).
+      if (Math.abs(event.deltaY) < 8) return;
       event.preventDefault();
-      goPrev();
+      if (event.deltaY > 0) goNext();
+      else goPrev();
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
@@ -143,21 +123,20 @@ export default function SlideDeck({ slides, active = true }) {
       onTouchEnd={(event) => {
         unlockAudio();
         const delta = event.changedTouches[0].clientY - touchStartY.current;
-        if (delta <= -SWIPE_THRESHOLD && atBottom()) goNext();
-        else if (delta >= SWIPE_THRESHOLD && atTop()) goPrev();
+        if (delta <= -SWIPE_THRESHOLD) goNext();
+        else if (delta >= SWIPE_THRESHOLD) goPrev();
       }}
     >
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div
           key={slide.id}
-          ref={panelRef}
           custom={direction}
           variants={variants}
           initial="enter"
           animate="center"
           exit="exit"
           transition={{ duration: reduceMotion ? 0.2 : 0.72, ease }}
-          className="absolute inset-0 overflow-y-auto overscroll-contain"
+          className="absolute inset-0 overflow-hidden"
         >
           <SlideContent />
         </motion.div>

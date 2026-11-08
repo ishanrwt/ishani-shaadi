@@ -108,13 +108,13 @@ const wedding = {
 
   images: {
     story: "/invitation/photos/childhood.jpg",
-    venue: "/invitation/photos/rd-farms.png",
+    venue: "/invitation/photos/rd-farms.webp",
     heroDecor: "/invitation/header.webp",
     panel: "/invitation/panel.webp",
     coupleArt: "/invitation/footer.webp",
     floralBorder: "/invitation/photos/floral-border.png",
-    music: "/music/ishq-hai.mp3",
-    musicStartAt: 36,
+    music: "/music/ishq-hai-loop.mp3",
+    musicStartAt: 0,
   },
 };
 
