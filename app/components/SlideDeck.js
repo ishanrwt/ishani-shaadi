@@ -8,6 +8,7 @@ const SWIPE_THRESHOLD = 40;
 const NAV_COOLDOWN_MS = 700;
 const AUTO_ADVANCE_MS = 5000;
 const RESUME_IDLE_MS = 1600;
+const FIRST_PAGE_DWELL_MS = 1000;
 
 export default function SlideDeck({ slides, active = true }) {
   const [index, setIndex] = useState(0);
@@ -18,7 +19,9 @@ export default function SlideDeck({ slides, active = true }) {
   const indexRef = useRef(0);
   const autoTimerRef = useRef(null);
   const resumeTimerRef = useRef(null);
+  const armTimerRef = useRef(null);
   const userInteractingRef = useRef(false);
+  const autoplayArmedRef = useRef(false);
 
   const total = slides.length;
   const canGo = active && total > 0;
@@ -39,6 +42,13 @@ export default function SlideDeck({ slides, active = true }) {
     if (resumeTimerRef.current) {
       window.clearTimeout(resumeTimerRef.current);
       resumeTimerRef.current = null;
+    }
+  }, []);
+
+  const clearArmTimer = useCallback(() => {
+    if (armTimerRef.current) {
+      window.clearTimeout(armTimerRef.current);
+      armTimerRef.current = null;
     }
   }, []);
 
@@ -64,7 +74,7 @@ export default function SlideDeck({ slides, active = true }) {
   );
 
   const scheduleAutoAdvance = useCallback(() => {
-    if (!canGo || reduceMotion) return;
+    if (!canGo || reduceMotion || !autoplayArmedRef.current) return;
     if (autoTimerRef.current) {
       window.clearTimeout(autoTimerRef.current);
       autoTimerRef.current = null;
@@ -106,9 +116,37 @@ export default function SlideDeck({ slides, active = true }) {
     [goTo, interruptAutoplay],
   );
 
-  // Restart 5s countdown whenever the slide changes (auto or manual).
+  // After splash/video ends, wait 1s on the first page before autoplay can start.
   useEffect(() => {
-    if (!canGo || reduceMotion) return undefined;
+    if (!active || reduceMotion) {
+      autoplayArmedRef.current = false;
+      clearArmTimer();
+      clearAutoTimers();
+      return undefined;
+    }
+
+    document.body.style.overflow = "hidden";
+    autoplayArmedRef.current = false;
+    clearAutoTimers();
+    clearArmTimer();
+
+    armTimerRef.current = window.setTimeout(() => {
+      armTimerRef.current = null;
+      autoplayArmedRef.current = true;
+      if (!userInteractingRef.current) scheduleAutoAdvance();
+    }, FIRST_PAGE_DWELL_MS);
+
+    return () => {
+      document.body.style.overflow = "";
+      clearArmTimer();
+      clearAutoTimers();
+      autoplayArmedRef.current = false;
+    };
+  }, [active, clearArmTimer, clearAutoTimers, reduceMotion, scheduleAutoAdvance]);
+
+  // Restart 5s countdown whenever the slide changes (only once autoplay is armed).
+  useEffect(() => {
+    if (!canGo || reduceMotion || !autoplayArmedRef.current) return undefined;
     if (userInteractingRef.current) return undefined;
     scheduleAutoAdvance();
     return () => {
@@ -118,18 +156,6 @@ export default function SlideDeck({ slides, active = true }) {
       }
     };
   }, [canGo, index, reduceMotion, scheduleAutoAdvance]);
-
-  useEffect(() => {
-    if (!active) {
-      clearAutoTimers();
-      return undefined;
-    }
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-      clearAutoTimers();
-    };
-  }, [active, clearAutoTimers]);
 
   useEffect(() => {
     if (!canGo) return undefined;

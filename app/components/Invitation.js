@@ -35,7 +35,7 @@ export default function Invitation() {
         <BackgroundMusic />
         <InviteSplash manageOverflow={false} onComplete={handleSplashComplete} />
         {splashDone ? <FloatingPetals /> : null}
-        <SlideDeck slides={slides} />
+        <SlideDeck slides={slides} active={splashDone} />
       </div>
     </main>
   );
