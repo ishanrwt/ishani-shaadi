@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const ease = [0.22, 1, 0.36, 1];
 const SWIPE_THRESHOLD = 40;
 const NAV_COOLDOWN_MS = 700;
+const AUTO_ADVANCE_MS = 5000;
+const RESUME_IDLE_MS = 1600;
 
 export default function SlideDeck({ slides, active = true }) {
   const [index, setIndex] = useState(0);
@@ -13,23 +15,42 @@ export default function SlideDeck({ slides, active = true }) {
   const reduceMotion = useReducedMotion();
   const lockedRef = useRef(false);
   const touchStartY = useRef(0);
+  const indexRef = useRef(0);
+  const autoTimerRef = useRef(null);
+  const resumeTimerRef = useRef(null);
+  const userInteractingRef = useRef(false);
 
   const total = slides.length;
   const canGo = active && total > 0;
+
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
   const unlockAudio = useCallback(() => {
     document.dispatchEvent(new Event("invite-unlock-audio"));
   }, []);
 
-  const goTo = useCallback(
-    (next) => {
-      if (!canGo || lockedRef.current) return;
-      const clamped = Math.max(0, Math.min(total - 1, next));
-      if (clamped === index) return;
+  const clearAutoTimers = useCallback(() => {
+    if (autoTimerRef.current) {
+      window.clearTimeout(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    if (resumeTimerRef.current) {
+      window.clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+  }, []);
 
-      unlockAudio();
+  const goTo = useCallback(
+    (next, { fromUser = false } = {}) => {
+      if (!canGo || lockedRef.current) return false;
+      const clamped = Math.max(0, Math.min(total - 1, next));
+      if (clamped === indexRef.current) return false;
+
+      if (fromUser) unlockAudio();
       lockedRef.current = true;
-      setDirection(clamped > index ? 1 : -1);
+      setDirection(clamped > indexRef.current ? 1 : -1);
       setIndex(clamped);
       window.setTimeout(
         () => {
@@ -37,20 +58,78 @@ export default function SlideDeck({ slides, active = true }) {
         },
         reduceMotion ? 180 : NAV_COOLDOWN_MS,
       );
+      return true;
     },
-    [canGo, index, reduceMotion, total, unlockAudio],
+    [canGo, reduceMotion, total, unlockAudio],
   );
 
-  const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
-  const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
+  const scheduleAutoAdvance = useCallback(() => {
+    if (!canGo || reduceMotion) return;
+    if (autoTimerRef.current) {
+      window.clearTimeout(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    if (indexRef.current >= total - 1) return;
+
+    autoTimerRef.current = window.setTimeout(() => {
+      autoTimerRef.current = null;
+      if (userInteractingRef.current) return;
+      goTo(indexRef.current + 1, { fromUser: false });
+    }, AUTO_ADVANCE_MS);
+  }, [canGo, goTo, reduceMotion, total]);
+
+  const interruptAutoplay = useCallback(() => {
+    if (!canGo || reduceMotion) return;
+    userInteractingRef.current = true;
+    clearAutoTimers();
+
+    resumeTimerRef.current = window.setTimeout(() => {
+      resumeTimerRef.current = null;
+      userInteractingRef.current = false;
+      scheduleAutoAdvance();
+    }, RESUME_IDLE_MS);
+  }, [canGo, clearAutoTimers, reduceMotion, scheduleAutoAdvance]);
+
+  const goNext = useCallback(
+    (fromUser = true) => {
+      if (fromUser) interruptAutoplay();
+      goTo(indexRef.current + 1, { fromUser });
+    },
+    [goTo, interruptAutoplay],
+  );
+
+  const goPrev = useCallback(
+    (fromUser = true) => {
+      if (fromUser) interruptAutoplay();
+      goTo(indexRef.current - 1, { fromUser });
+    },
+    [goTo, interruptAutoplay],
+  );
+
+  // Restart 5s countdown whenever the slide changes (auto or manual).
+  useEffect(() => {
+    if (!canGo || reduceMotion) return undefined;
+    if (userInteractingRef.current) return undefined;
+    scheduleAutoAdvance();
+    return () => {
+      if (autoTimerRef.current) {
+        window.clearTimeout(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+    };
+  }, [canGo, index, reduceMotion, scheduleAutoAdvance]);
 
   useEffect(() => {
-    if (!active) return undefined;
+    if (!active) {
+      clearAutoTimers();
+      return undefined;
+    }
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
+      clearAutoTimers();
     };
-  }, [active]);
+  }, [active, clearAutoTimers]);
 
   useEffect(() => {
     if (!canGo) return undefined;
@@ -58,11 +137,11 @@ export default function SlideDeck({ slides, active = true }) {
     const onKeyDown = (event) => {
       if (event.key === "ArrowDown" || event.key === "PageDown" || event.key === " ") {
         event.preventDefault();
-        goNext();
+        goNext(true);
       }
       if (event.key === "ArrowUp" || event.key === "PageUp") {
         event.preventDefault();
-        goPrev();
+        goPrev(true);
       }
     };
 
@@ -74,16 +153,16 @@ export default function SlideDeck({ slides, active = true }) {
     if (!canGo) return undefined;
 
     const onWheel = (event) => {
-      // One wheel/trackpad gesture = one page (cooldown blocks repeats).
       if (Math.abs(event.deltaY) < 8) return;
       event.preventDefault();
-      if (event.deltaY > 0) goNext();
-      else goPrev();
+      interruptAutoplay();
+      if (event.deltaY > 0) goTo(indexRef.current + 1, { fromUser: true });
+      else goTo(indexRef.current - 1, { fromUser: true });
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => window.removeEventListener("wheel", onWheel);
-  }, [canGo, goNext, goPrev]);
+  }, [canGo, goTo, interruptAutoplay]);
 
   const variants = reduceMotion
     ? {
@@ -118,13 +197,15 @@ export default function SlideDeck({ slides, active = true }) {
       onPointerDown={unlockAudio}
       onTouchStart={(event) => {
         unlockAudio();
+        interruptAutoplay();
         touchStartY.current = event.touches[0].clientY;
       }}
       onTouchEnd={(event) => {
         unlockAudio();
         const delta = event.changedTouches[0].clientY - touchStartY.current;
-        if (delta <= -SWIPE_THRESHOLD) goNext();
-        else if (delta >= SWIPE_THRESHOLD) goPrev();
+        if (delta <= -SWIPE_THRESHOLD) goNext(true);
+        else if (delta >= SWIPE_THRESHOLD) goPrev(true);
+        else interruptAutoplay();
       }}
     >
       <AnimatePresence mode="wait" custom={direction}>
@@ -149,7 +230,10 @@ export default function SlideDeck({ slides, active = true }) {
             type="button"
             aria-label={`Go to ${item.label}`}
             aria-current={i === index}
-            onClick={() => goTo(i)}
+            onClick={() => {
+              interruptAutoplay();
+              goTo(i, { fromUser: true });
+            }}
             className={`pointer-events-auto h-2 w-2 rounded-full transition-all duration-500 ${
               i === index
                 ? "scale-125 bg-gold"
@@ -162,7 +246,7 @@ export default function SlideDeck({ slides, active = true }) {
       {index < total - 1 ? (
         <button
           type="button"
-          onClick={goNext}
+          onClick={() => goNext(true)}
           className="absolute bottom-5 left-1/2 z-40 flex -translate-x-1/2 flex-col items-center gap-1 text-brown/55 transition-opacity hover:text-brown"
           aria-label="Reveal next slide"
         >

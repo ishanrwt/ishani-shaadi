@@ -141,11 +141,9 @@ export default function InviteSplash({
 
           <AnimatePresence mode="wait">
             {stage === "text" ? (
-              <motion.button
+              <motion.div
                 key="text"
-                type="button"
-                onClick={openInvite}
-                className="relative z-10 flex h-full w-full cursor-pointer flex-col items-center justify-center gap-5 border-0 bg-transparent px-8 text-center"
+                className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-7 px-8 text-center"
                 initial={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.45, ease }}
@@ -158,15 +156,40 @@ export default function InviteSplash({
                 >
                   You&apos;re Invited
                 </motion.p>
+
+                <motion.button
+                  type="button"
+                  onClick={openInvite}
+                  aria-label="Play invite"
+                  className="group relative flex h-16 w-16 items-center justify-center rounded-full border border-gold/45 bg-cream/40 text-gold shadow-[0_10px_30px_rgba(90,58,32,0.08)] backdrop-blur-[2px] transition-transform duration-500 hover:scale-105 active:scale-95 sm:h-[4.25rem] sm:w-[4.25rem]"
+                  initial={{ opacity: 0, scale: 0.88 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.7, delay: 0.55, ease }}
+                >
+                  <motion.span
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-full border border-gold/25"
+                    animate={{ scale: [1, 1.18, 1], opacity: [0.55, 0, 0.55] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="relative ml-0.5 h-7 w-7 fill-current sm:h-8 sm:w-8"
+                    aria-hidden="true"
+                  >
+                    <path d="M8.2 5.6c-.7-.4-1.5.1-1.5.9v11c0 .8.8 1.3 1.5.9l9.2-5.5c.6-.4.6-1.4 0-1.8L8.2 5.6z" />
+                  </svg>
+                </motion.button>
+
                 <motion.p
-                  className="font-display text-[0.95rem] font-bold uppercase tracking-[0.32em] text-gold sm:text-[1.05rem]"
+                  className="font-display text-[0.8rem] font-bold uppercase tracking-[0.32em] text-gold sm:text-[0.9rem]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8, delay: 0.7, ease }}
+                  transition={{ duration: 0.8, delay: 0.85, ease }}
                 >
                   Tap to open
                 </motion.p>
-              </motion.button>
+              </motion.div>
             ) : null}
 
             {stage === "loading" ? (
